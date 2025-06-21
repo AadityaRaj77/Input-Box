@@ -1,0 +1,16 @@
+{
+    "manifest_version": 3,
+    "name": "DeltaPrompt",
+    "version": "1.0",
+    "description": "DeltaPrompt is a floating command-driven input assistant that transforms how you interact with web pages\nSwitch between Habit Mode for synced, eye-level typing across any input field, and Advanced Mode to issue smart prompts powered by AI — restyle pages, summarize forms, or automate inputs using natural language\n⚡ Seamless. Smart. Always within reach.",
+    
+    "permissions": [
+      "activeTab",
+      "tabs"
+    ],
+    
+    "icons": {
+      "48": "public/logo.png"
+    }
+  }
+  

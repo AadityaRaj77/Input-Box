@@ -1,1 +1,1 @@
-# Input-Box
+# Firefox Extension for a Custom Input Box Everywhere
