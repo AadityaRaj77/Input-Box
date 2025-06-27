@@ -3,14 +3,51 @@
     "name": "DeltaPrompt",
     "version": "1.0",
     "description": "DeltaPrompt is a floating command-driven input assistant that transforms how you interact with web pages\nSwitch between Habit Mode for synced, eye-level typing across any input field, and Advanced Mode to issue smart prompts powered by AI — restyle pages, summarize forms, or automate inputs using natural language\n⚡ Seamless. Smart. Always within reach.",
-    
     "permissions": [
+      "scripting",
+      "storage",
+      "commands",
+      "contextMenus",
       "activeTab",
       "tabs"
     ],
-    
-    "icons": {
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "public/logo.png",
+        "48": "public/logo.png",
+        "128": "public/logo.png"
+      }
+    },
+
+
+    "background": {
+    "service_worker": "background.js"
+  },
+
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "icons": {
       "48": "public/logo.png"
+    },
+  
+
+  "commands": {
+    "toggle-box": {
+      "suggested_key": { "default": "Ctrl+Shift+Y" },
+      "description": "Toggle the input box"
+    },
+    "switch-mode": {
+      "suggested_key": { "default": "Ctrl+Shift+M" },
+      "description": "Switch Habit/Advanced mode"
     }
   }
-  
+}
