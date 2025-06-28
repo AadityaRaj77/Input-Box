@@ -1,14 +1,14 @@
-console.log("content.js loaded"); 
+console.log("content.js loaded");
 
 chrome.runtime.onMessage.addListener((message) => {
-  console.log("Message received in content.js:", message);  
+  console.log("Message received in content.js:", message);
   if (message.action === "typeToGemini") {
     sendToGemini(message.text);
   }
 });
 
 function sendToGemini(text) {
-  console.log("sendToGemini called with:", text); 
+  console.log("sendToGemini called with:", text);
   const geminiInput = document.querySelector('div[aria-label="Enter a prompt here"]');
   if (geminiInput) {
     geminiInput.innerText = text;
@@ -20,8 +20,8 @@ function sendToGemini(text) {
 }
 
 // Floating box injection + listener
-;(function() {
-  console.log("Injecting floating box"); 
+; (function () {
+  console.log("Injecting floating box");
   if (!document.getElementById('myFloatingBox')) {
     const floating = document.createElement('div');
     floating.id = 'myFloatingBox';
@@ -32,7 +32,7 @@ function sendToGemini(text) {
     const input = floating.querySelector('#floatingInput');
     if (input) {
       input.addEventListener('input', (e) => {
-        console.log("Floating input changed:", e.target.value);  
+        console.log("Floating input changed:", e.target.value);
         sendToGemini(e.target.value);
       });
       console.log("Listener attached to floatingInput");
@@ -43,3 +43,14 @@ function sendToGemini(text) {
     console.log("myFloatingBox already exists");
   }
 })();
+
+
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.shiftKey && e.code === 'KeyK') {
+    const box = document.getElementById('myFloatingBox');
+    if (box) {
+      box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+    }
+  }
+});
+
