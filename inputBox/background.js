@@ -1,8 +1,4 @@
-/*chrome.runtime.onInstalled.addListener(()=>{
-    chrome.storage.sync.get(["geminiApiKey"], (result) => {
-      if(!result.geminiApiKey){
-        chrome.tabs.create({ url: "options.html"});
-      }
-    })
-  })*/
-  
+// Listen for toolbar‑icon click ⇢ toggle Habit vs Advanced
+chrome.action.onClicked.addListener((tab) => {
+  chrome.tabs.sendMessage(tab.id, { action: "toggleMode" });
+});

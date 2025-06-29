@@ -1,11 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extension Options</title>
+  <title>Gemini API Key</title>
 </head>
 <body>
-    Hello
+  <h2>Enter Your Gemini API Key</h2>
+  <input id="apiKeyInput" type="text" placeholder="Enter API Key" style="width: 400px;" />
+  <button id="saveBtn">Save</button>
+  <p id="status" style="color: green;"></p>
+
+  <script>
+    console.log("Options page loaded");
+
+    const input = document.getElementById("apiKeyInput");
+    const saveBtn = document.getElementById("saveBtn");
+    const status = document.getElementById("status");
+
+    chrome.storage.sync.get("gemApiKey", (res) => {
+      console.log("Loaded from storage:", res);
+      if (res.gemApiKey) {
+        input.value = res.gemApiKey;
+        status.textContent = "API key loaded.";
+      }
+    });
+
+    saveBtn.addEventListener("click", () => {
+      const key = input.value.trim();
+      if (!key) {
+        status.textContent = "Please enter a valid key.";
+        return;
+      }
+      chrome.storage.sync.set({ gemApiKey: key }, () => {
+        console.log("Saved to storage:", key);
+        status.textContent = "API key saved!";
+      });
+    });
+  </script>
 </body>
 </html>
