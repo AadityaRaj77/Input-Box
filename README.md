@@ -31,6 +31,13 @@ git clone https://github.com/AadityaRaj77/Input-Box.git
 ```bash
 chrome://extensions/
 ```
+* Go to Extension Options of that extension and enter the Groq API Key
+
+* Get Groq API Key from
+
+```bash
+https://console.groq.com/keys
+```
 
 * Use the extension on Gemini ai
 

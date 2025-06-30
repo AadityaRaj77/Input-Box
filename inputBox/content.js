@@ -243,7 +243,7 @@ console.log("🚀 content.js loaded");
       z-index:9999;
     `;
     hb.innerHTML = `
-      <input id="habitInput" placeholder="Type & Sync to Gemini…" 
+      <input id="habitInput" placeholder="Type & Sync..." 
              style="width:300px;padding:6px;font-size:14px;" />
       <small style="color:#666;">Ctrl+Shift+K to toggle</small>
     `;
@@ -265,88 +265,217 @@ console.log("🚀 content.js loaded");
       <textarea id="advInput" rows="4" placeholder="Type CSS snippet or prompt…" 
                 style="width:300px;padding:6px;font-size:14px;"></textarea>
       <button id="advSend" style="padding:6px;">Apply</button>
-      <small style="color:#666;">Ctrl+Shift+A to toggle</small>
+      <small style="color:#666;">Ctrl+Shift+E to toggle</small>
     `;
     document.body.appendChild(ab);
   }
 })();
 
 //Habit Mode handlers 
+/*(function habitMode() {
+  const input = document.getElementById("habitInput");
+  if (!input) return;
+
+  /*input.addEventListener("input", e => {
+    const gem = document.querySelector('div[aria-label="Enter a prompt here"]');
+    if (gem) {
+      gem.innerText = e.target.value;
+      gem.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  });*/
+
+  /*input.addEventListener("input", e => {
+    // Look for contenteditable inside the footer area
+    const footer = document.querySelector('footer');
+    const chatBox = footer?.querySelector('[contenteditable="true"]');
+  
+    if (chatBox) {
+      chatBox.innerText = e.target.value;
+      chatBox.dispatchEvent(new InputEvent("input", { bubbles: true }));
+    }
+  });*/
+  
+  
+  
+
+  /*input.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+  
+      // Look for send button near the chat box
+      const sendBtn = document.querySelector('footer [data-testid="send"]');
+      if (sendBtn) sendBtn.click();
+    }
+  });  
+})();*/
+
+(function setupPanels() {
+  // Habit box
+  if (!document.getElementById("habitBox")) {
+    const hb = document.createElement("div");
+    hb.id = "habitBox";
+    hb.style.cssText = `
+      position: fixed; top: 20%; right: 20%;
+      display: none; flex-direction: column; gap:6px;
+      background:#fff; padding:10px; border:2px solid #00bcd4;
+      border-radius:8px; z-index:9999;
+    `;
+    hb.innerHTML = `
+      <input id="habitInput" placeholder="Type here to sync…" 
+             style="width:250px;padding:6px;font-size:14px;" />
+      <small style="color:#666;">Ctrl+Shift+K</small>
+    `;
+    document.body.appendChild(hb);
+  }
+
+  // Advanced box
+  if (!document.getElementById("advBox")) {
+    const ab = document.createElement("div");
+    ab.id = "advBox";
+    ab.style.cssText = `
+      position: fixed; top: 35%; right:20%;
+      display: none; flex-direction: column; gap:6px;
+      background:#fff; padding:10px; border:2px solid #555;
+      border-radius:8px; z-index:9999;
+    `;
+    ab.innerHTML = `
+      <textarea id="advInput" rows="4" 
+        placeholder="CSS or prompt…" style="width:250px;"></textarea>
+      <button id="advSend">Apply</button>
+      <small style="color:#666;">Ctrl+Shift+A</small>
+    `;
+    document.body.appendChild(ab);
+  }
+})();
+
+// Habit Mode
 (function habitMode() {
   const input = document.getElementById("habitInput");
   if (!input) return;
 
   input.addEventListener("input", e => {
+    const val = e.target.value;
+
+    // Gemini sync 
     const gem = document.querySelector('div[aria-label="Enter a prompt here"]');
     if (gem) {
-      gem.innerText = e.target.value;
+      gem.innerText = val;
       gem.dispatchEvent(new Event("input", { bubbles: true }));
+      return;
+    }
+
+    // Gmail sync 
+    if (location.hostname.includes("mail.google.com")) {
+      const body = document.querySelector('div[aria-label="Message Body"]');
+      if (body) {
+        body.innerText = val;
+        body.dispatchEvent(new InputEvent("input", { bubbles: true }));
+        return;
+      }
+      
+      const subj = document.querySelector('input[name="subjectbox"]');
+      if (subj) {
+        subj.value = val;
+        subj.dispatchEvent(new Event("input", { bubbles: true }));
+        return;
+      }
+      const to = document.querySelector('textarea[name="to"]');
+      if (to) {
+        to.value = val;
+        to.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      return;
     }
   });
 
   input.addEventListener("keydown", e => {
     if (e.key === "Enter") {
       e.preventDefault();
-      const icon = document.querySelector("mat-icon.send-button-icon");
-      const btn  = icon?.closest("button, [role='button']");
-      if (btn) btn.click();
-      else if (icon) icon.click();
+     const gemPrompt = document.querySelector('div[aria-label="Enter a prompt here"]');
+     if (gemPrompt) {
+       let sendBtn = document.querySelector('button[aria-label="Send"]');
+       if (!sendBtn) {
+         const icon = document.querySelector("mat-icon.send-button-icon");
+         sendBtn = icon?.closest("button, [role='button']");
+       }
+       if (sendBtn) {
+         sendBtn.click();
+         input.value = "";   
+         return;             
+       }
+     }
+
+      // Send on Gemini
+      if (location.hostname.includes("chat.openai.com")) {
+        const btn = document.querySelector("button:has(mat-icon.send-button-icon)");
+        if (btn) btn.click();
+      }
+      // Send on Gmail
+      else if (location.hostname.includes("mail.google.com")) {
+        const sendBtn = document.querySelector(
+          'div[role="button"][aria-label^="Send"]'
+        );
+        if (sendBtn) sendBtn.click();
+      }
+
+      input.value = "";
     }
   });
 })();
+
 
 // Advanced Mode handlers ➞ CSS snippet injection + LLM fallback
 (function advancedMode() {
   const sendBtn = document.getElementById("advSend");
   if (!sendBtn) return;
 
-  sendBtn.addEventListener("click", () => {
-    let prompt = document.getElementById("advInput").value.trim();
-    if (!prompt) return alert("Please enter a prompt or CSS.");
+  sendBtn.addEventListener("click", async () => {
+    let raw = document.getElementById("advInput").value.trim();
+    if (!raw) return alert("Enter CSS or a prompt.");
 
-    // If pasted raw CSS (contains a block), inject it directly
-    if (/\{[\s\S]*\}/.test(prompt)) {
+    //Gmail summarize flow
+    if (/^summarize/i.test(raw) && location.hostname.includes("mail.google.com")) {
+      const bodyField = document.querySelector('div[aria-label="Message Body"]');
+      const threadText = bodyField
+        ? Array.from(bodyField.querySelectorAll("p, span, div"))
+            .map(el => el.innerText)
+            .join("\n")
+            .slice(0, 2000)
+        : "";
+
+      if (!threadText) return alert("No message body found to summarize.");
+
+      raw = `Summarize the following in 3 bullet points:\n\n${threadText}`;
+    }
+
+    if (/\{[\s\S]*\}/.test(raw)) {
       const style = document.createElement("style");
-      style.innerText = prompt;
+      style.innerText = raw;
       document.head.appendChild(style);
-      return alert("🎨 CSS snippet applied!");
+      return alert("🎨 CSS applied!");
     }
 
-    if (/summarize/i.test(prompt)) {
-      const pageText = Array.from(
-        document.body.querySelectorAll("p, h1, h2, h3, li, span")
-      )
-      .map(el => el.innerText)
-      .join("\n")
-      .slice(0, 2000);
-      prompt = `Summarize the following in 3 bullet points:\n\n${pageText}`;
-    }
-
-    chrome.runtime.sendMessage(
-      { action: "callLLM", prompt },
-      response => {
-        if (response.error) {
-          console.error("LLM error:", response.error);
-          return alert("❌ LLM Error: " + response.error);
-        }
-
-        const reply = response.data?.trim() || "";
-        console.log("LLM raw reply:", reply);
-
-        const cssMatch = reply.match(/```css\s*([\s\S]*?)```|{[\s\S]*}/i);
-        if (cssMatch) {
-          const cssText = cssMatch[1] || cssMatch[0];
-          const style = document.createElement("style");
-          style.innerText = cssText;
-          document.head.appendChild(style);
-          return alert("🎨 CSS applied via LLM!");
-        }
-
-        alert("🧠 LLM says:\n\n" + reply);
+    chrome.runtime.sendMessage({ action: "callLLM", prompt: raw }, response => {
+      if (response.error) {
+        console.error("LLM error:", response.error);
+        return alert("❌ LLM Error: " + response.error);
       }
-    );
+      const reply = response.data?.trim() || "";
+
+      const cssMatch = reply.match(/```css\s*([\s\S]*?)```|{[\s\S]*}/i);
+      if (cssMatch) {
+        const css = cssMatch[1] || cssMatch[0];
+        const style = document.createElement("style");
+        style.innerText = css;
+        document.head.appendChild(style);
+        return alert("🎨 CSS from LLM applied!");
+      }
+
+      alert("🧠 LLM says:\n\n" + reply);
+    });
   });
 })();
+
 
 //Keyboard shortcuts
 document.addEventListener("keydown", e => {
@@ -354,7 +483,7 @@ document.addEventListener("keydown", e => {
     document.getElementById("habitBox").style.display = "flex";
     document.getElementById("advBox").style.display   = "none";
   }
-  if (e.ctrlKey && e.shiftKey && e.code === "KeyA") {
+  if (e.ctrlKey && e.shiftKey && e.code === "KeyE") {
     document.getElementById("advBox").style.display   = "flex";
     document.getElementById("habitBox").style.display = "none";
   }
