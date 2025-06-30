@@ -4,7 +4,7 @@
 ### GDSC Open Project
 
 ## Overview
-This chrome extension allow users to interact with informational websites such as gemini ai, chat gpt, whatsapp web through input boxes. There are two types of boxes - Habit and Advanced input box.
+This chrome extension allow users to interact with websites Gemini and Gmail through input boxes. There are two types of boxes - Habit and Advanced input box.
 ## Features
 Habit Mode - Allow users to type in input fields of websites in a seperate box, present at center, which sync with the input real time. This comforts users to type at center, eye-comfortable.
 Keyboard Shortcut to enable - Ctrl + Shift + K
@@ -39,7 +39,7 @@ chrome://extensions/
 https://console.groq.com/keys
 ```
 
-* Use the extension on Gemini ai
+* Use the extension on Gemini ai or Gmail
 
 ```bash
 https://gemini.google.com/app
