@@ -429,25 +429,24 @@ console.log("🚀 content.js loaded");
   const sendBtn = document.getElementById("advSend");
   if (!sendBtn) return;
 
-  sendBtn.addEventListener("click", async () => {
+  sendBtn.addEventListener("click", () => {
     let raw = document.getElementById("advInput").value.trim();
     if (!raw) return alert("Enter CSS or a prompt.");
 
-    //Gmail summarize flow
-    if (/^summarize/i.test(raw) && location.hostname.includes("mail.google.com")) {
-      const bodyField = document.querySelector('div[aria-label="Message Body"]');
-      const threadText = bodyField
-        ? Array.from(bodyField.querySelectorAll("p, span, div"))
-            .map(el => el.innerText)
-            .join("\n")
-            .slice(0, 2000)
-        : "";
+  
+    if (/^summarize/i.test(raw)) {
+    
+      const pageText = Array.from(
+        document.body.querySelectorAll("p, h1, h2, h3, li, span, div")
+      )
+        .map(el => el.innerText)
+        .join("\n")
+        .slice(0, 2000);
 
-      if (!threadText) return alert("No message body found to summarize.");
-
-      raw = `Summarize the following in 3 bullet points:\n\n${threadText}`;
+      raw = `Summarize the following in 3 bullet points:\n\n${pageText}`;
     }
 
+    
     if (/\{[\s\S]*\}/.test(raw)) {
       const style = document.createElement("style");
       style.innerText = raw;
@@ -455,12 +454,13 @@ console.log("🚀 content.js loaded");
       return alert("🎨 CSS applied!");
     }
 
-    chrome.runtime.sendMessage({ action: "callLLM", prompt: raw }, response => {
-      if (response.error) {
-        console.error("LLM error:", response.error);
-        return alert("❌ LLM Error: " + response.error);
+  
+    chrome.runtime.sendMessage({ action: "callLLM", prompt: raw }, res => {
+      if (res.error) {
+        console.error(res.error);
+        return alert("❌ LLM Error: " + res.error);
       }
-      const reply = response.data?.trim() || "";
+      const reply = (res.data || "").trim();
 
       const cssMatch = reply.match(/```css\s*([\s\S]*?)```|{[\s\S]*}/i);
       if (cssMatch) {
@@ -471,7 +471,7 @@ console.log("🚀 content.js loaded");
         return alert("🎨 CSS from LLM applied!");
       }
 
-      alert("🧠 LLM says:\n\n" + reply);
+      alert("🧠 Summary / Answer:\n\n" + reply);
     });
   });
 })();

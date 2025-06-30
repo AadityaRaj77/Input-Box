@@ -14,7 +14,7 @@ Keyboard Shortcut to enable - Ctrl + Shift + E
 
 ## Video Demo (detailed)
 ```bash
-
+https://drive.google.com/file/d/1BYpecYjS6IBAHqih42A-1YyZjl6X78xw/view?usp=sharing
 ``` 
 
 ## Technologies Used
