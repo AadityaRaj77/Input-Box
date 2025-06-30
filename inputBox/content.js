@@ -54,140 +54,308 @@ document.addEventListener('keydown', (e) => {
   }
 });*/
 
+// content.js
+/*console.log("🚀 content.js loaded");
 
-chrome.storage.sync.get("gemApiKey", res => {
-  console.log("content.js sees gemApiKey =", res.gemApiKey);
-});
+// 1) Inject UI panels if not already present
+(function setupPanels() {
+  if (!document.getElementById("habitBox")) {
+    const hb = document.createElement("div");
+    hb.id = "habitBox";
+    hb.style.cssText = `
+      position: fixed; top:50%; left:50%;
+      transform: translate(-50%,-50%);
+      display: none; flex-direction: column; gap:6px;
+      background: #fff; padding:12px; border:2px solid #00bcd4;
+      border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2);
+      z-index:9999;
+    `;
+    hb.innerHTML = `
+      <input id="habitInput" placeholder="Type & Sync to Gemini…" 
+             style="width:300px;padding:6px;font-size:14px;" />
+      <small style="color:#666;">Ctrl+Shift+K to toggle</small>
+    `;
+    document.body.appendChild(hb);
+  }
 
+  if (!document.getElementById("advBox")) {
+    const ab = document.createElement("div");
+    ab.id = "advBox";
+    ab.style.cssText = `
+      position: fixed; top:50%; left:50%;
+      transform: translate(-50%,-50%);
+      display: none; flex-direction: column; gap:6px;
+      background: #fff; padding:12px; border:2px solid #555;
+      border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2);
+      z-index:9999;
+    `;
+    ab.innerHTML = `
+      <textarea id="advInput" rows="4" placeholder="CSS tweak or summarize prompt…" 
+                style="width:300px;padding:6px;font-size:14px;"></textarea>
+      <button id="advSend" style="padding:6px;">Send to Gemini API</button>
+      <small style="color:#666;">Ctrl+Shift+A to toggle</small>
+    `;
+    document.body.appendChild(ab);
+  }
+})();
 
-let mode = "habit";
+// 2) Habit Mode handlers
+(function habitMode() {
+  const input = document.getElementById("habitInput");
+  if (!input) return;
 
-function createBox(id, html, baseStyles) {
-  if (document.getElementById(id)) return;
-  const box = document.createElement("div");
-  box.id = id;
-  Object.assign(box.style, baseStyles, {
-    position: "fixed",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%,-50%)",
-    background: "#fff",
-    padding: "12px",
-    border: "2px solid #00bcd4",
-    borderRadius: "8px",
-    boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-    zIndex: "9999",
-    display: "none",
-    flexDirection: "column",
-    gap: "8px"
+  input.addEventListener("input", e => {
+    const gem = document.querySelector('div[aria-label="Enter a prompt here"]');
+    if (gem) {
+      gem.innerText = e.target.value;
+      gem.dispatchEvent(new Event("input", { bubbles: true }));
+    }
   });
-  box.innerHTML = html;
-  document.body.appendChild(box);
-}
 
-// 1) Habit Mode box
-createBox("habitBox", `
-  <input id="habitInput" placeholder="Type & Sync to Gemini…" style="width:300px;padding:6px;font-size:14px;" />
-  <small>CtrlShiftK to toggle</small>
-`, { display: "flex", alignItems: "center" });
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const icon = document.querySelector("mat-icon.send-button-icon");
+      const btn  = icon?.closest("button, [role='button']");
+      if (btn) btn.click();
+      else if (icon) icon.click();
+    }
+  });
+})();
 
-// 2) Advanced Mode box
-createBox("advBox", `
-  <textarea id="advInput" rows="4" placeholder="Enter CSS tweak or “summarize” prompt…" 
-            style="width:300px;padding:6px;font-size:14px;"></textarea>
-  <button id="advSend">Send to Gemini API</button>
-  <small>CtrlShiftA to toggle</small>
-`, { display: "flex", alignItems: "stretch" });
+// 3) Advanced Mode handlers
+(function advancedMode() {
+  const sendBtn = document.getElementById("advSend");
+  if (!sendBtn) return;
 
-// Handlers
-document.getElementById("habitInput").addEventListener("input", e => {
-  const text = e.target.value;
-  const gem = document.querySelector('div[aria-label="Enter a prompt here"]');
-  if (gem) {
-    gem.innerText = text;
-    gem.dispatchEvent(new Event("input", { bubbles: true }));
+  sendBtn.addEventListener("click", async () => {
+    let prompt = document.getElementById("advInput").value.trim();
+    if (!prompt) return alert("Please enter a prompt.");
+
+    if (/summarize/i.test(prompt)) {
+      const pageText = Array.from(
+        document.body.querySelectorAll("p, h1, h2, h3, li, span")
+      ).map(el => el.innerText).join("\n").slice(0, 2000);
+      prompt = `Summarize the following in 3 bullet points:\n\n${pageText}`;
+    }
+
+    const apiKey = await new Promise(r =>
+      chrome.storage.sync.get("gemApiKey", res => r(res.gemApiKey))
+    );
+    if (!apiKey) {
+      return alert("API key missing! Save it in Options.");
+    }
+
+    const MODEL    = "gemini-1.5-flash";
+    const endpoint = 
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateText?key=${apiKey}`;
+
+    try {
+     // ── AFTER: proxy through background ──
+     const result = await new Promise(resolve => {
+      chrome.runtime.sendMessage(
+        { action: "callGeminiAPI", prompt },
+        response => resolve(response)
+      );
+    });
+    
+    
+    if (result.error) {
+      if (result.error === "missing_key") {
+        return alert("⚠️ API key missing! Save it in Options.");
+      }
+    
+      if (result.error === "bad_json") {
+        console.error("⚠️ Bad JSON from Gemini:\n", result.raw);
+        return alert("⚠️ Bad JSON response. See console for raw response.");
+      }
+    
+      if (result.error === "empty_response") {
+        return alert("⚠️ Empty response from Gemini.");
+      }
+    
+      console.error("❌ API/network error:", result.error);
+      return alert("❌ API/network error.");
+    }
+    
+    
+    const data = result.data;
+    
+  
+      console.log("📝 Gemini response:", data);
+
+      const reply = result.data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      if (!reply) {
+        return alert("⚠️ Empty response. Check console.");
+      }
+
+      if (reply.includes("{") && reply.includes("}")) {
+        const style = document.createElement("style");
+        style.innerText = reply;
+        document.head.appendChild(style);
+        alert("🎨 CSS applied!");
+      } else {
+        alert("🧠 Summary:\n\n" + reply);
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      alert("Network error. See console.");
+    }
+  });
+})();
+
+// 4) Listen for toolbar‑icon clicks
+chrome.runtime.onMessage.addListener(msg => {
+  if (msg.action === "toggleHabit") {
+    document.getElementById("habitBox").style.display = "flex";
+    document.getElementById("advBox").style.display   = "none";
   }
 });
-document.getElementById("habitInput").addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    const icon = document.querySelector("mat-icon.send-button-icon");
-    const btn = icon?.closest("button, [role='button']");
-    btn ? btn.click() : icon?.click();
+
+// 5) Keyboard shortcuts
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey && e.shiftKey && e.code === "KeyK") {
+    document.getElementById("habitBox").style.display = "flex";
+    document.getElementById("advBox").style.display   = "none";
+  }
+  if (e.ctrlKey && e.shiftKey && e.code === "KeyA") {
+    document.getElementById("advBox").style.display   = "flex";
+    document.getElementById("habitBox").style.display = "none";
   }
 });
 
-document.getElementById("advSend").addEventListener("click", async () => {
-  let userPrompt = document.getElementById("advInput").value.trim();
+*/
 
-  if (/summarize/i.test(userPrompt)) {
-    const pageText = Array.from(document.body.querySelectorAll("p, h1, h2, h3, li, span"))
+
+console.log("🚀 content.js loaded");
+
+// Inject UI panels if not already present
+(function setupPanels() {
+  if (!document.getElementById("habitBox")) {
+    const hb = document.createElement("div");
+    hb.id = "habitBox";
+    hb.style.cssText = `
+      position: fixed; top:50%; left:50%;
+      transform: translate(-50%,-50%);
+      display: none; flex-direction: column; gap:6px;
+      background: #fff; padding:12px; border:2px solid #00bcd4;
+      border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2);
+      z-index:9999;
+    `;
+    hb.innerHTML = `
+      <input id="habitInput" placeholder="Type & Sync to Gemini…" 
+             style="width:300px;padding:6px;font-size:14px;" />
+      <small style="color:#666;">Ctrl+Shift+K to toggle</small>
+    `;
+    document.body.appendChild(hb);
+  }
+
+  if (!document.getElementById("advBox")) {
+    const ab = document.createElement("div");
+    ab.id = "advBox";
+    ab.style.cssText = `
+      position: fixed; top:50%; left:50%;
+      transform: translate(-50%,-50%);
+      display: none; flex-direction: column; gap:6px;
+      background: #fff; padding:12px; border:2px solid #555;
+      border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2);
+      z-index:9999;
+    `;
+    ab.innerHTML = `
+      <textarea id="advInput" rows="4" placeholder="Type CSS snippet or prompt…" 
+                style="width:300px;padding:6px;font-size:14px;"></textarea>
+      <button id="advSend" style="padding:6px;">Apply</button>
+      <small style="color:#666;">Ctrl+Shift+A to toggle</small>
+    `;
+    document.body.appendChild(ab);
+  }
+})();
+
+//Habit Mode handlers 
+(function habitMode() {
+  const input = document.getElementById("habitInput");
+  if (!input) return;
+
+  input.addEventListener("input", e => {
+    const gem = document.querySelector('div[aria-label="Enter a prompt here"]');
+    if (gem) {
+      gem.innerText = e.target.value;
+      gem.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  });
+
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const icon = document.querySelector("mat-icon.send-button-icon");
+      const btn  = icon?.closest("button, [role='button']");
+      if (btn) btn.click();
+      else if (icon) icon.click();
+    }
+  });
+})();
+
+// Advanced Mode handlers ➞ CSS snippet injection + LLM fallback
+(function advancedMode() {
+  const sendBtn = document.getElementById("advSend");
+  if (!sendBtn) return;
+
+  sendBtn.addEventListener("click", () => {
+    let prompt = document.getElementById("advInput").value.trim();
+    if (!prompt) return alert("Please enter a prompt or CSS.");
+
+    // If pasted raw CSS (contains a block), inject it directly
+    if (/\{[\s\S]*\}/.test(prompt)) {
+      const style = document.createElement("style");
+      style.innerText = prompt;
+      document.head.appendChild(style);
+      return alert("🎨 CSS snippet applied!");
+    }
+
+    if (/summarize/i.test(prompt)) {
+      const pageText = Array.from(
+        document.body.querySelectorAll("p, h1, h2, h3, li, span")
+      )
       .map(el => el.innerText)
       .join("\n")
       .slice(0, 2000);
-    userPrompt = `Summarize the following:\n\n${pageText}`;
-  }
+      prompt = `Summarize the following in 3 bullet points:\n\n${pageText}`;
+    }
 
-  const apiKey = await new Promise(resolve =>
-    chrome.storage.sync.get("gemApiKey", res => resolve(res.gemApiKey))
-  );
+    chrome.runtime.sendMessage(
+      { action: "callLLM", prompt },
+      response => {
+        if (response.error) {
+          console.error("LLM error:", response.error);
+          return alert("❌ LLM Error: " + response.error);
+        }
 
-  if (!apiKey) {
-    alert("API key missing! Save it in Options.");
-    return;
-  }
+        const reply = response.data?.trim() || "";
+        console.log("LLM raw reply:", reply);
 
-  console.log("Using key:", apiKey);
-  console.log("Sending prompt:", userPrompt);
+        const cssMatch = reply.match(/```css\s*([\s\S]*?)```|{[\s\S]*}/i);
+        if (cssMatch) {
+          const cssText = cssMatch[1] || cssMatch[0];
+          const style = document.createElement("style");
+          style.innerText = cssText;
+          document.head.appendChild(style);
+          return alert("🎨 CSS applied via LLM!");
+        }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: userPrompt }] }]
-    })
+        alert("🧠 LLM says:\n\n" + reply);
+      }
+    );
   });
+})();
 
-  const data = await res.json();
-  console.log("API response:", data);
-
-  const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-
-  if (!reply) {
-    alert("Empty response from Gemini. Check console for full API response.");
-    return;
-  }
-
-  if (reply.includes("{") && reply.includes("}")) {
-    const style = document.createElement("style");
-    style.innerText = reply;
-    document.head.appendChild(style);
-    alert("CSS Applied!");
-  } else {
-    alert("Summary:\n\n" + reply);
-  }
-});
-
-
-
-chrome.runtime.onMessage.addListener(msg => {
-  if (msg.action === "toggleMode") {
-    // Switch mode
-    mode = mode === "habit" ? "advanced" : "habit";
-    document.getElementById("habitBox").style.display = mode === "habit" ? "flex" : "none";
-    document.getElementById("advBox").style.display = mode === "advanced" ? "flex" : "none";
-    console.log("Switched to", mode);
-  }
-});
-
+//Keyboard shortcuts
 document.addEventListener("keydown", e => {
   if (e.ctrlKey && e.shiftKey && e.code === "KeyK") {
-    chrome.runtime.sendMessage({ action: "toggleMode" });
+    document.getElementById("habitBox").style.display = "flex";
+    document.getElementById("advBox").style.display   = "none";
   }
   if (e.ctrlKey && e.shiftKey && e.code === "KeyA") {
-    chrome.runtime.sendMessage({ action: "toggleMode" });
+    document.getElementById("advBox").style.display   = "flex";
+    document.getElementById("habitBox").style.display = "none";
   }
 });
-

@@ -1,40 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Gemini API Key</title>
+  <meta charset="utf-8" />
+  <title>API Keys</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input { width: 100%; padding: 8px; margin-bottom: 10px; }
+    button { padding: 8px 16px; }
+    .status { margin-top: 8px; color: green; }
+  </style>
 </head>
 <body>
-  <h2>Enter Your Gemini API Key</h2>
-  <input id="apiKeyInput" type="text" placeholder="Enter API Key" style="width: 400px;" />
-  <button id="saveBtn">Save</button>
-  <p id="status" style="color: green;"></p>
-
-  <script>
-    console.log("Options page loaded");
-
-    const input = document.getElementById("apiKeyInput");
-    const saveBtn = document.getElementById("saveBtn");
-    const status = document.getElementById("status");
-
-    chrome.storage.sync.get("gemApiKey", (res) => {
-      console.log("Loaded from storage:", res);
-      if (res.gemApiKey) {
-        input.value = res.gemApiKey;
-        status.textContent = "API key loaded.";
-      }
-    });
-
-    saveBtn.addEventListener("click", () => {
-      const key = input.value.trim();
-      if (!key) {
-        status.textContent = "Please enter a valid key.";
-        return;
-      }
-      chrome.storage.sync.set({ gemApiKey: key }, () => {
-        console.log("Saved to storage:", key);
-        status.textContent = "API key saved!";
-      });
-    });
-  </script>
+  <h2>Enter Your API Keys</h2>
+  <label>Gemini Key (optional):</label>
+  <input id="gemApiInput" type="text" placeholder="AIza… (for Gemini)" />
+  <label>Groq Key (required for LLM):</label>
+  <input id="groqApiInput" type="text" placeholder="sk-…" />
+  <button id="saveBtn">Save Keys</button>
+  <p id="status" class="status"></p>
+  <script src="options.js"></script>
 </body>
 </html>
