@@ -33,7 +33,7 @@ chrome://extensions/
 ```
 * Go to Extension Options of that extension and enter the Groq API Key
 
-* Get Groq API Key from
+* Get Groq API Key from (or you can also use Gemini ai API for better results)
 
 ```bash
 https://console.groq.com/keys
